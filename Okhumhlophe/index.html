@@ -220,17 +220,6 @@
               </div>
               <div id="member-notifications" style="margin-top:12px"></div>
             </div>
-
-            <!-- Member Contact Admin Section -->
-            <div class="card" style="margin-top:14px">
-              <h4 style="margin:0 0 8px 0">Send Message to Admin</h4>
-              <div class="muted" style="margin-bottom:8px">Ask a question or submit an inquiry directly to administration</div>
-              <textarea id="member-msg-input" placeholder="Type your message or query here..." rows="3"></textarea>
-              <button id="btn-send-admin-msg" class="btn" style="margin-top:10px">Send Message</button>
-              
-              <h4 style="margin-top:20px;margin-bottom:8px">My Sent Messages & Admin Responses</h4>
-              <ul id="member-msg-history" style="list-style:none;padding:0;margin:0"></ul>
-            </div>
           </div>
 
           <aside>
@@ -305,13 +294,6 @@
     function uid(){ return Math.floor(Math.random()*1e9); }
     function nowIso(){ return new Date().toISOString(); }
 
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return String(str).replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[m]));
-    }
-
     function loadState(){
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -334,7 +316,7 @@
       const today = new Date().toISOString().slice(0,10);
       const adminPassHash = await hashPw('@dmin123');
       const admin = { id: uid(), username: 'Thapelo', passHash: adminPassHash, role:'admin', created: today, members: [] };
-      state = { admin, pending: [], audit: [], resetTokens: [], paymentRequests: [], messages: [] };
+      state = { admin, pending: [], audit: [], resetTokens: [], paymentRequests: [] };
       saveState(state);
       return state;
     }
@@ -549,7 +531,6 @@
       const total = (state && state.admin) ? (state.admin.members || []).reduce((s,m)=> s + ((m.payments||[]).reduce((a,p)=> a + (p.amount||0),0)), 0) : 0;
       document.getElementById('member-total-collected').textContent = `R ${total}`;
       renderMemberNotifications(member);
-      renderMemberMessageHistory();
       populateMemberYearSelect();
       renderMemberYearGrid(new Date().getFullYear());
       const adminBtn = document.getElementById('admin-signin-btn');
@@ -607,66 +588,6 @@
         showToast('Request submitted — admin will review');
       }
     });
-
-    // Send message to admin listener
-    document.addEventListener('click', (e)=>{
-      if(e.target && e.target.id === 'btn-send-admin-msg'){
-        const textInput = document.getElementById('member-msg-input');
-        const text = textInput.value.trim();
-        if(!text) return showToast('Please enter a message.', 'error');
-
-        const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-        if(!s || s.type !== 'member') return showToast('Sign in as member', 'error');
-
-        const state = loadState();
-        if(!state) return;
-        if(!state.messages) state.messages = [];
-
-        const member = (state.admin.members || []).find(m => String(m.id) === String(s.memberId));
-        const currentUsername = member ? member.username : s.username;
-
-        state.messages.push({
-          id: 'msg_' + uid(),
-          username: currentUsername,
-          text: text,
-          timestamp: nowIso(),
-          reply: null
-        });
-
-        saveState(state);
-        textInput.value = '';
-        showToast('Your message has been sent to the admin!');
-        renderMemberMessageHistory();
-      }
-    });
-
-    function renderMemberMessageHistory(){
-      const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
-      if(!s || s.type !== 'member') return;
-
-      const state = loadState();
-      if(!state) return;
-
-      const member = (state.admin ? state.admin.members || [] : []).find(m => String(m.id) === String(s.memberId));
-      const username = member ? member.username : s.username;
-
-      const myMsgs = (state.messages || []).filter(m => String(m.username).toLowerCase() === String(username).toLowerCase());
-      const listEl = document.getElementById('member-msg-history');
-      if(!listEl) return;
-
-      if(myMsgs.length === 0){
-        listEl.innerHTML = '<li class="muted" style="font-size:14px">No message history yet.</li>';
-        return;
-      }
-
-      listEl.innerHTML = myMsgs.map(m => `
-        <li style="padding:10px;border-bottom:1px solid var(--border);margin-bottom:8px">
-          <div style="font-size:13px;color:var(--muted)"><strong>You (${(m.timestamp||'').slice(0,10)}):</strong></div>
-          <div style="margin-top:4px;font-size:14px">${escapeHtml(m.text)}</div>
-          ${m.reply ? `<div style="margin-top:6px;font-size:14px;color:#059669"><strong>Admin Reply:</strong> ${escapeHtml(m.reply)}</div>` : '<div style="margin-top:6px;font-size:12px" class="muted"><em>Waiting for admin response...</em></div>'}
-        </li>
-      `).join('');
-    }
 
     function populateMemberYearSelect(){
       const sel = document.getElementById('member-year-select'); if(!sel) return;
@@ -734,7 +655,7 @@
       container.innerHTML = '';
       const notes = member.notifications || [];
       if(notes.length === 0){ container.innerHTML = '<div class="muted">No notifications</div>'; return; }
-      for(const n of notes){ const d = document.createElement('div'); d.className = 'list-item'; d.style.padding='10px'; d.style.border='1px solid var(--border)'; d.style.borderRadius='8px'; d.innerHTML = `<div>${escapeHtml(n.message)}</div><div class="muted-small" style="margin-top:6px">${n.timestamp.slice(0,19).replace('T',' ')}</div>`; container.appendChild(d); }
+      for(const n of notes){ const d = document.createElement('div'); d.className = 'list-item'; d.style.padding='10px'; d.style.border='1px solid var(--border)'; d.style.borderRadius='8px'; d.innerHTML = `<div>${n.message}</div><div class="muted-small" style="margin-top:6px">${n.timestamp.slice(0,19).replace('T',' ')}</div>`; container.appendChild(d); }
     }
 
     function renderMemberNotificationsFromSession(){
@@ -742,7 +663,6 @@
       const state = loadState(); if(!state || !state.admin) return;
       const member = state.admin.members.find(m=>String(m.id)===String(s.memberId)); if(!member) return;
       renderMemberNotifications(member);
-      renderMemberMessageHistory();
     }
 
     (async function init(){
