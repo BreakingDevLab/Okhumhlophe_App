@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Okhumhlophe — Admin Panel</title>
+  <meta name="description" content="Okhumhlophe — Admin Management Control Panel" />
+  <style>
+    :root{
+      --bg:#f5f8fb; --panel:#fff; --muted:#6b7280; --accent:#0ea5a4; --accent-2:#3b82f6;
+      --border:#e6eef6; --shadow:0 10px 24px rgba(12,18,30,0.06); --radius:12px;
+      --max-width:1100px; --gap:18px; --font:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+      --min-input-height:44px; --danger:#ef4444; --success:#10b981;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#fff);font-family:var(--font);-webkit-font-smoothing:antialiased;color:#0b1220}
+    .container{max-width:var(--max-width);margin:28px auto;padding:20px;display:grid;grid-template-columns:250px 1fr;gap:var(--gap)}
+    @media(max-width:980px){.container{grid-template-columns:1fr;padding:16px}}
+    header.site-header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+    .title{font-size:20px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:4px}
+    .sidebar{background:linear-gradient(180deg,#0f172a,#0b3b4a);color:#fff;border-radius:12px;padding:18px;border:1px solid rgba(255,255,255,0.04);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:16px}
+    .nav{display:flex;flex-direction:column;gap:8px}
+    .nav button{background:transparent;border:none;color:rgba(255,255,255,0.95);text-align:left;padding:10px;border-radius:10px;cursor:pointer;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+    .nav button.active{background:rgba(255,255,255,0.1)}
+    .card{background:var(--panel);border-radius:12px;padding:18px;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .stats{display:flex;gap:12px;margin-bottom:18px}
+    .stat{flex:1;background:#fbfdff;padding:12px;border-radius:10px;border:1px solid var(--border);text-align:center}
+    .muted{color:var(--muted)}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:700}
+    .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:600}
+    .btn.danger{background:linear-gradient(90deg,#ef4444,#dc2626);color:#fff}
+    .btn.success{background:linear-gradient(90deg,#10b981,#059669);color:#fff}
+    .btn.small{padding:6px 10px;font-size:13px;border-radius:8px}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-size:14px;min-height:40px}
+    .table-container{overflow-x:auto}
+    table{width:100%;border-collapse:collapse;margin-top:10px;text-align:left;font-size:14px}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border)}
+    th{background:#f8fafc;color:var(--muted);font-weight:600}
+    .badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:12px;font-weight:700}
+    .badge.pending{background:#fef3c7;color:#d97706}
+    .badge.approved{background:#d1fae5;color:#059669}
+    .toast{position:fixed;right:20px;bottom:20px;padding:12px 16px;border-radius:10px;color:#fff;z-index:80;display:none}
+    .toast.success{background:linear-gradient(90deg,#10b981,#059669)}
+    .toast.error{background:linear-gradient(90deg,#ef4444,#dc2626)}
+    .hidden{display:none}
+    .whatsapp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:10px 12px;border-radius:8px;text-decoration:none;font-weight:700;border:none;cursor:pointer;font-size:13px;}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="site-header">
+      <div class="brand">
+        <div class="logo">OK</div>
+        <div>
+          <h1 class="title">Okhumhlophe Dashboard</h1>
+          <div class="subtitle">Admin Management Control Panel</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="muted" id="admin-name-display">Signed in as Admin</span>
+        <button id="admin-signout-btn" class="btn ghost small">Sign out</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <nav class="nav">
+        <button id="nav-members" class="active">Members</button>
+        <button id="nav-pending">Pending Registrations</button>
+        <button id="nav-requests">Payment Requests</button>
+        <button id="nav-messages">Member Messages <span id="badge-messages-count" class="badge pending" style="display:none">0</span></button>
+        <button id="nav-settings">Settings & Security</button>
+      </nav>
+      <div style="margin-top:auto">
+        <a class="whatsapp-btn" href="https://wa.me/27681505779" target="_blank" rel="noopener noreferrer">
+          Contact via WhatsApp
+        </a>
+      </div>
+    </aside>
+
+    <main>
+      <div class="stats">
+        <div class="stat"><div class="muted">Active Members</div><strong id="stat-members-count">0</strong></div>
+        <div class="stat"><div class="muted">Pending Approvals</div><strong id="stat-pending-count">0</strong></div>
+        <div class="stat"><div class="muted">Payment Requests</div><strong id="stat-requests-count">0</strong></div>
+        <div class="stat"><div class="muted">Messages</div><strong id="stat-messages-count">0</strong></div>
+        <div class="stat"><div class="muted">Total Collected</div><strong id="stat-total-funds">R 0</strong></div>
+      </div>
+
+      <!-- Members Section -->
+      <section id="sec-members" class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">Registered Members</h3>
+          <button id="btn-export-data" class="btn ghost small">Export JSON</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Contact</th>
+                <th>Total Paid</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-members">
+              <tr><td colspan="5" class="muted">No members registered.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Pending Registrations Section -->
+      <section id="sec-pending" class="card hidden">
+        <h3 style="margin:0 0 10px 0">Pending Account Requests</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Requested Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-pending">
+              <tr><td colspan="4" class="muted">No pending signups.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Payment Requests Section -->
+      <section id="sec-requests" class="card hidden">
+        <h3 style="margin:0 0 10px 0">Pending Payment Logging Requests</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Month</th>
+                <th>Amount</th>
+                <th>Note</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-requests">
+              <tr><td colspan="5" class="muted">No pending payment requests.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Member Messages Section -->
+      <section id="sec-messages" class="card hidden">
+        <h3 style="margin:0 0 10px 0">Member Messages & Inquiries</h3>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Date</th>
+                <th>Message</th>
+                <th>Admin Response</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-messages">
+              <tr><td colspan="5" class="muted">No messages received.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Settings & Security Section -->
+      <section id="sec-settings" class="card hidden">
+        <h3 style="margin:0 0 10px 0">Admin Security Settings</h3>
+        <p class="muted">Change the administrator login password below.</p>
+        <div style="max-width:400px;display:flex;flex-direction:column;gap:12px;margin-top:14px">
+          <label>New Admin Password
+            <input id="input-new-admin-pass" type="password" placeholder="Enter new password" />
+          </label>
+          <button id="btn-change-pass" class="btn">Update Password</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+  (function(){
+    const STORAGE_KEY = 'okhumhlophe_v1';
+    const SESSION_KEY = 'okhumhlophe_session_v1';
+
+    function createDefaultState() {
+      return { admin: { members: [], passHash: '' }, pending: [], paymentRequests: [], messages: [] };
+    }
+
+    function loadState(){
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if(!raw) return createDefaultState();
+        if(!raw.admin) raw.admin = { members: [] };
+        if(!raw.admin.members) raw.admin.members = [];
+        if(!raw.pending) raw.pending = [];
+        if(!raw.paymentRequests) raw.paymentRequests = [];
+        if(!raw.messages) raw.messages = [];
+        return raw;
+      } catch(e){
+        return createDefaultState();
+      }
+    }
+
+    function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function showToast(msg, type='success', ms=3000){
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + (type === 'error' ? 'error' : 'success');
+      t.style.display = 'block';
+      clearTimeout(t._hide);
+      t._hide = setTimeout(()=> t.style.display = 'none', ms);
+    }
+
+    async function hashPw(p){
+      const enc = new TextEncoder();
+      const h = await crypto.subtle.digest('SHA-256', enc.encode(p));
+      return Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    // Verify session
+    function checkAuth(){
+      try {
+        const session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+        if(!session || session.type !== 'admin'){
+          window.location.href = 'index.html';
+          return false;
+        }
+        return true;
+      } catch(e) {
+        window.location.href = 'index.html';
+        return false;
+      }
+    }
+
+    if(!checkAuth()) return;
+
+    let state = loadState();
+
+    function updateStats(){
+      if(!state) return;
+      const members = state.admin.members || [];
+      const pending = state.pending || [];
+      const requests = state.paymentRequests || [];
+      const messages = state.messages || [];
+      const unreplied = messages.filter(m => !m.reply).length;
+      const totalFunds = members.reduce((sum, m) => sum + (m.payments||[]).reduce((a,p)=> a + (Number(p.amount)||0), 0), 0);
+
+      document.getElementById('stat-members-count').textContent = members.length;
+      document.getElementById('stat-pending-count').textContent = pending.length;
+      document.getElementById('stat-requests-count').textContent = requests.length;
+      document.getElementById('stat-messages-count').textContent = messages.length;
+      document.getElementById('stat-total-funds').textContent = `R ${totalFunds}`;
+
+      const msgBadge = document.getElementById('badge-messages-count');
+      if(unreplied > 0) {
+        msgBadge.textContent = unreplied;
+        msgBadge.style.display = 'inline-block';
+      } else {
+        msgBadge.style.display = 'none';
+      }
+    }
+
+    function renderMembers(){
+      const tbody = document.getElementById('tbl-members');
+      const members = state.admin.members || [];
+      if(members.length === 0){ tbody.innerHTML = '<tr><td colspan="5" class="muted">No members registered.</td></tr>'; return; }
+      tbody.innerHTML = members.map(m => {
+        const total = (m.payments||[]).reduce((sum, p) => sum + (Number(p.amount)||0), 0);
+        const safeId = escapeHtml(String(m.id));
+        return `<tr>
+          <td><strong>${escapeHtml(m.name || m.username)}</strong></td>
+          <td>${escapeHtml(m.username)}</td>
+          <td>${escapeHtml(m.contact || '-')}</td>
+          <td>R ${total}</td>
+          <td><button class="btn ghost small" onclick="manualAddPayment('${safeId}')">+ Log Payment</button></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderPending(){
+      const tbody = document.getElementById('tbl-pending');
+      const pending = state.pending || [];
+      if(pending.length === 0){ tbody.innerHTML = '<tr><td colspan="4" class="muted">No pending signups.</td></tr>'; return; }
+      tbody.innerHTML = pending.map(p => {
+        const safeId = escapeHtml(String(p.id));
+        const reqDate = p.requestedAt ? escapeHtml(p.requestedAt.slice(0,10)) : '-';
+        return `<tr>
+          <td><strong>${escapeHtml(p.name)}</strong></td>
+          <td>${escapeHtml(p.username)}</td>
+          <td>${reqDate}</td>
+          <td>
+            <button class="btn success small" onclick="approvePending('${safeId}')">Approve</button>
+            <button class="btn danger small" onclick="rejectPending('${safeId}')">Reject</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderRequests(){
+      const tbody = document.getElementById('tbl-requests');
+      const reqs = state.paymentRequests || [];
+      if(reqs.length === 0){ tbody.innerHTML = '<tr><td colspan="5" class="muted">No pending payment requests.</td></tr>'; return; }
+      tbody.innerHTML = reqs.map(r => {
+        const safeId = escapeHtml(String(r.id));
+        return `<tr>
+          <td><strong>${escapeHtml(r.username)}</strong></td>
+          <td>${escapeHtml(r.month)}</td>
+          <td>R ${Number(r.amount) || 0}</td>
+          <td>${escapeHtml(r.note || '-')}</td>
+          <td>
+            <button class="btn success small" onclick="approvePaymentReq('${safeId}')">Approve</button>
+            <button class="btn danger small" onclick="rejectPaymentReq('${safeId}')">Deny</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderMessages(){
+      const tbody = document.getElementById('tbl-messages');
+      const msgs = state.messages || [];
+      if(msgs.length === 0){ tbody.innerHTML = '<tr><td colspan="5" class="muted">No messages received.</td></tr>'; return; }
+      tbody.innerHTML = msgs.map(m => {
+        const safeId = escapeHtml(String(m.id));
+        const dateStr = m.timestamp ? escapeHtml(m.timestamp.slice(0,10)) : '-';
+        const replyText = m.reply ? `<span class="badge approved">Replied</span> ${escapeHtml(m.reply)}` : '<span class="badge pending">Awaiting Response</span>';
+        return `<tr>
+          <td><strong>${escapeHtml(m.username)}</strong></td>
+          <td>${dateStr}</td>
+          <td>${escapeHtml(m.text)}</td>
+          <td>${replyText}</td>
+          <td>
+            <button class="btn ghost small" onclick="replyToMessage('${safeId}')">Reply</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Handlers mapped globally for row buttons
+    window.approvePending = function(id){
+      const idx = state.pending.findIndex(p => String(p.id) === String(id));
+      if(idx < 0) return;
+      const user = state.pending.splice(idx, 1)[0];
+      state.admin.members.push({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        passHash: user.passHash,
+        contact: user.contact || '',
+        payments: [],
+        notifications: [{ message: 'Your account has been approved by admin.', timestamp: new Date().toISOString() }]
+      });
+      saveState(state);
+      showToast(`Approved ${user.username}`);
+      refreshAll();
+    };
+
+    window.rejectPending = function(id){
+      state.pending = state.pending.filter(p => String(p.id) !== String(id));
+      saveState(state);
+      showToast('Registration rejected');
+      refreshAll();
+    };
+
+    window.approvePaymentReq = function(reqId){
+      const idx = state.paymentRequests.findIndex(r => String(r.id) === String(reqId));
+      if(idx < 0) return;
+      const req = state.paymentRequests.splice(idx, 1)[0];
+      const member = state.admin.members.find(m => String(m.username).toLowerCase() === String(req.username).toLowerCase());
+      if(member){
+        if(!member.payments) member.payments = [];
+        member.payments.push({ month: req.month, amount: Number(req.amount) || 0, note: req.note, date: new Date().toISOString() });
+        if(!member.notifications) member.notifications = [];
+        member.notifications.push({ message: `Payment of R${req.amount} for ${req.month} approved.`, timestamp: new Date().toISOString() });
+      }
+      saveState(state);
+      showToast('Payment approved & logged');
+      refreshAll();
+    };
+
+    window.rejectPaymentReq = function(reqId){
+      state.paymentRequests = state.paymentRequests.filter(r => String(r.id) !== String(reqId));
+      saveState(state);
+      showToast('Payment request denied');
+      refreshAll();
+    };
+
+    window.replyToMessage = function(msgId){
+      const msg = (state.messages || []).find(m => String(m.id) === String(msgId));
+      if(!msg) return;
+
+      const replyText = prompt(`Reply to ${msg.username}:\n"${msg.text}"`, msg.reply || '');
+      if(replyText === null) return;
+      if(!replyText.trim()) return showToast('Reply cannot be empty', 'error');
+
+      msg.reply = replyText.trim();
+      msg.repliedAt = new Date().toISOString();
+
+      // Send notification to member account
+      const member = state.admin.members.find(m => String(m.username).toLowerCase() === String(msg.username).toLowerCase());
+      if(member){
+        if(!member.notifications) member.notifications = [];
+        member.notifications.push({
+          message: `Admin responded to your inquiry: "${msg.reply}"`,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      saveState(state);
+      showToast(`Reply sent to ${msg.username}`);
+      refreshAll();
+    };
+
+    window.manualAddPayment = function(memberId){
+      const month = prompt('Enter payment month code (e.g., 2026-08):', new Date().toISOString().slice(0,7));
+      if(!month) return;
+      const amountStr = prompt('Enter payment amount in ZAR:', '100');
+      const amount = Number(amountStr);
+      if(!amount || isNaN(amount)) return showToast('Invalid amount', 'error');
+
+      const member = state.admin.members.find(m => String(m.id) === String(memberId));
+      if(!member) return;
+      if(!member.payments) member.payments = [];
+      member.payments.push({ month, amount, date: new Date().toISOString(), note: 'Logged by Admin' });
+      saveState(state);
+      showToast(`Logged R${amount} for ${member.username}`);
+      refreshAll();
+    };
+
+    document.getElementById('btn-change-pass').addEventListener('click', async ()=>{
+      const pass = document.getElementById('input-new-admin-pass').value;
+      if(!pass){ showToast('Enter a valid password', 'error'); return; }
+      state.admin.passHash = await hashPw(pass);
+      saveState(state);
+      document.getElementById('input-new-admin-pass').value = '';
+      showToast('Admin password updated successfully');
+    });
+
+    document.getElementById('admin-signout-btn').addEventListener('click', ()=>{
+      localStorage.removeItem(SESSION_KEY);
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('btn-export-data').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `okhumhlophe-backup-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+
+    // Navigation section switching
+    const navs = [
+      { btn: 'nav-members', sec: 'sec-members' },
+      { btn: 'nav-pending', sec: 'sec-pending' },
+      { btn: 'nav-requests', sec: 'sec-requests' },
+      { btn: 'nav-messages', sec: 'sec-messages' },
+      { btn: 'nav-settings', sec: 'sec-settings' }
+    ];
+
+    navs.forEach(n => {
+      document.getElementById(n.btn).addEventListener('click', ()=>{
+        navs.forEach(o => {
+          document.getElementById(o.btn).classList.remove('active');
+          document.getElementById(o.sec).classList.add('hidden');
+        });
+        document.getElementById(n.btn).classList.add('active');
+        document.getElementById(n.sec).classList.remove('hidden');
+      });
+    });
+
+    function refreshAll(){
+      state = loadState();
+      updateStats();
+      renderMembers();
+      renderPending();
+      renderRequests();
+      renderMessages();
+    }
+
+    refreshAll();
+  })();
+  </script>
+</body>
+</html>
